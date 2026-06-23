@@ -45,12 +45,8 @@ def fetch_intraday_ok(ticker):
 
 def market_of(tk): return "B3" if tk.endswith(".SA") else "EUA"
 
-def scan(tickers, days_back=2):
-    """
-    Retorna sinais cujo gatilho da BB (primeira abertura) ocorreu HOJE ou ONTEM.
-    As janelas DIDI(8)/ADX(3) sao sempre contadas a partir do candle do gatilho.
-    Cada hit traz 'bb_quando' = 'hoje' ou 'ontem'.
-    """
+def scan(tickers, days_back=1):
+    """Retorna lista de sinais nos ultimos `days_back` candles."""
     hits=[]
     today = pd.Timestamp(datetime.date.today())
     for i,tk in enumerate(tickers,1):
@@ -58,37 +54,34 @@ def scan(tickers, days_back=2):
         d = fetch_intraday_ok(tk)
         if len(d) < 60: continue
         try:
-            s = bt.compute_signals_windowed(d, didi_window=8, adx_window=3)
+            s = bt.compute_signals_windowed(d, didi_window=5, adx_window=3)
         except Exception:
             continue
-        n = len(s)
-        # candidatos: ultimo candle (hoje) e penultimo (ontem)
-        for offset, quando in [(0, "hoje"), (1, "ontem")]:
-            pos = n - 1 - offset
-            if pos < 0: continue
-            idx = s.index[pos]; row = s.iloc[pos]
-            if not bool(row["signal_win"]):
-                continue
-            is_forming = (idx.normalize() == today)   # so 'hoje' pode estar em formacao
-            entry = row["Close"]; low = row["Low"]; r = entry - low
-            r_pct = (r/entry*100) if entry>0 else 0
-            vol20 = s["Volume"].iloc[max(0,pos-19):pos+1].mean()
-            px20  = s["Close"].iloc[max(0,pos-19):pos+1].mean()
-            fin_vol = (vol20 * px20) / 1e6 if not np.isnan(vol20) else 0.0
-            didi_ago = adx_ago = None
-            for k in range(0,9):
-                if pos-k>=0 and bool(s["didi_cross"].iloc[pos-k]): didi_ago=k; break
-            for k in range(0,4):
-                if pos-k>=0 and bool(s["adx_event"].iloc[pos-k]): adx_ago=k; break
-            hits.append({
-                "ticker": tk, "market": market_of(tk),
-                "date": idx.date(), "forming": is_forming, "bb_quando": quando,
-                "close": round(float(entry),2), "stop": round(float(low),2),
-                "r_pct": round(float(r_pct),2),
-                "adx": round(float(row.get("adx",np.nan)),1),
-                "didi_ago": didi_ago, "adx_ago": adx_ago,
-                "vol_fin_mi": round(float(fin_vol),1),
-            })
+        # olha os ultimos days_back candles
+        tail = s.iloc[-days_back:]
+        for idx, row in tail.iterrows():
+            if bool(row["signal_win"]):
+                is_forming = (idx.normalize() == today)
+                entry = row["Close"]; low = row["Low"]; r = entry - low
+                r_pct = (r/entry*100) if entry>0 else 0
+                pos = s.index.get_loc(idx)
+                vol20 = s["Volume"].iloc[max(0,pos-19):pos+1].mean()
+                px20  = s["Close"].iloc[max(0,pos-19):pos+1].mean()
+                fin_vol = (vol20 * px20) / 1e6 if not np.isnan(vol20) else 0.0
+                didi_ago = adx_ago = None
+                for k in range(0,6):
+                    if pos-k>=0 and bool(s["didi_cross"].iloc[pos-k]): didi_ago=k; break
+                for k in range(0,4):
+                    if pos-k>=0 and bool(s["adx_event"].iloc[pos-k]): adx_ago=k; break
+                hits.append({
+                    "ticker": tk, "market": market_of(tk),
+                    "date": idx.date(), "forming": is_forming,
+                    "close": round(float(entry),2), "stop": round(float(low),2),
+                    "r_pct": round(float(r_pct),2),
+                    "adx": round(float(row.get("adx",np.nan)),1),
+                    "didi_ago": didi_ago, "adx_ago": adx_ago,
+                    "vol_fin_mi": round(float(fin_vol),1),
+                })
         time.sleep(0.03)
     return hits
 
