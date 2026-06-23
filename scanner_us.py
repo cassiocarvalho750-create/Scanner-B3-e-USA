@@ -21,7 +21,7 @@ def main():
     uni=[t for t in rb.get_universe(quick=a.quick) if not t.endswith(".SA")]
     print(f"Scanner EUA (DIDI+ADX+BB, gatilho BB) | {len(uni)} ativos | ultimos {a.days} candle(s)\n")
     hits=sc.scan(uni, a.days)
-    hits.sort(key=lambda h:(not h["forming"], h["ticker"]))
+    hits.sort(key=lambda h:(h["bb_quando"]!="hoje", not h["forming"], h["ticker"]))
 
     # terminal
     print("\n"+"="*60)
@@ -29,8 +29,9 @@ def main():
     else:
         print(f"  {len(hits)} sinal(is):\n")
         for h in hits:
-            st="EM FORMACAO" if h["forming"] else "fechado"
-            print(f"  {h['ticker']:<10}{st:<12} preco {h['close']:>8} stop {h['stop']:>8} "
+            st=("EM FORMACAO" if h["forming"] else "fechado")
+            bbq=("BB hoje" if h["bb_quando"]=="hoje" else "BB ontem")
+            print(f"  {h['ticker']:<10}{bbq:<9}{st:<12} preco {h['close']:>8} stop {h['stop']:>8} "
                   f"R% {h['r_pct']:>5} vol {h['vol_fin_mi']:>7}Mi  DIDI -{h['didi_ago']}d ADX -{h['adx_ago']}d")
 
 
@@ -41,10 +42,13 @@ def main():
         badge = ("<span style='background:#f9a825;color:#fff;padding:2px 8px;border-radius:10px;font-size:11px'>em formação</span>"
                  if h["forming"] else
                  "<span style='background:#2E7D4F;color:#fff;padding:2px 8px;border-radius:10px;font-size:11px'>fechado</span>")
+        bb_badge = ("<span style='background:#1A4731;color:#fff;padding:2px 8px;border-radius:10px;font-size:11px'>BB hoje</span>"
+                    if h["bb_quando"]=="hoje" else
+                    "<span style='background:#3E6D9E;color:#fff;padding:2px 8px;border-radius:10px;font-size:11px'>BB ontem</span>")
         da = f"há {h['didi_ago']}d" if h['didi_ago'] is not None else "—"
         aa = f"há {h['adx_ago']}d" if h['adx_ago'] is not None else "—"
         tk_disp = h["ticker"].replace(".SA","")
-        rows+=(f"<tr><td style='font-weight:600'>{tk_disp}</td><td>{h['date']}</td><td>{badge}</td>"
+        rows+=(f"<tr><td style='font-weight:600'>{tk_disp}</td><td>{h['date']}</td><td>{badge}</td><td>{bb_badge}</td>"
                f"<td style='text-align:right'>{h['close']}</td><td style='text-align:right'>{h['stop']}</td>"
                f"<td style='text-align:right'>{h['r_pct']}%</td><td style='text-align:right'>{h['vol_fin_mi']}</td>"
                f"<td style='text-align:right'>{da}</td><td style='text-align:right'>{aa}</td></tr>")
@@ -58,7 +62,7 @@ def main():
     <h2>Scanner EUA — DIDI + ADX + BB</h2>
     <p style="font-size:13px;color:#666">{n} sinal(is) · gerado em {today} · gatilho na BB (DIDI até 5d, ADX até 3d).
     <b>Em formação</b> = candle de hoje ainda mexendo. <b>Fechado</b> = pregão encerrado.</p>
-    <table><thead><tr><th>Ativo</th><th>Data</th><th>Status</th><th>Preço</th><th>Stop</th><th>R%</th><th>Vol (Mi)</th><th>DIDI</th><th>ADX</th></tr></thead>
+    <table><thead><tr><th>Ativo</th><th>Data</th><th>Status</th><th>BB</th><th>Preço</th><th>Stop</th><th>R%</th><th>Vol (Mi)</th><th>DIDI</th><th>ADX</th></tr></thead>
     <tbody>{rows if rows else '<tr><td colspan=9 style=text-align:center;color:#888;padding:20px>Nenhum ativo disparou os critérios.</td></tr>'}</tbody></table>
     <p style="font-size:12px;color:#888;margin-top:14px">Sinais técnicos para análise própria. Confira contexto, liquidez (volume) e R% antes de operar. Não é recomendação.</p>
     </body></html>"""
