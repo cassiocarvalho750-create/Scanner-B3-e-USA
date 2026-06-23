@@ -74,6 +74,33 @@ B3_BASE = [
 def get_b3():
     return [t + ".SA" for t in B3_BASE]
 
+# Lista fixa das principais acoes liquidas dos EUA (S&P500 / NASDAQ100 mais negociadas).
+# Usada quando a busca na Wikipedia falha (ex.: bloqueio 403 em servidores).
+US_BASE = [
+    "AAPL","MSFT","NVDA","AMZN","GOOGL","GOOG","META","TSLA","AVGO","AMD",
+    "NFLX","ADBE","CRM","INTC","QCOM","TXN","AMAT","MU","ADI","LRCX",
+    "KLAC","SNPS","CDNS","MRVL","NXPI","ON","ASML","INTU","ORCL","IBM",
+    "CSCO","ACN","NOW","UBER","SHOP","PLTR","PANW","CRWD","FTNT","DDOG",
+    "SNOW","ZS","NET","MDB","TEAM","WDAY","ADSK","ROP","ANSS","ABNB",
+    "JPM","BAC","WFC","GS","MS","C","BLK","SCHW","AXP","SPGI",
+    "V","MA","PYPL","COF","USB","PNC","TFC","BK","CME","ICE",
+    "UNH","JNJ","LLY","ABBV","MRK","PFE","TMO","ABT","DHR","BMY",
+    "AMGN","GILD","ISRG","VRTX","REGN","CVS","CI","HUM","ELV","MDT",
+    "WMT","COST","PG","KO","PEP","MCD","NKE","SBUX","TGT","LOW",
+    "HD","TJX","BKNG","CMG","MAR","HLT","YUM","ROST","DG","DLTR",
+    "XOM","CVX","COP","SLB","EOG","MPC","PSX","VLO","OXY","WMB",
+    "BA","CAT","GE","HON","UPS","RTX","LMT","DE","UNP","MMM",
+    "ADP","GD","NOC","EMR","ETN","ITW","CSX","NSC","FDX","PH",
+    "DIS","CMCSA","T","VZ","TMUS","CHTR","WBD","EA","TTWO","SPOT",
+    "PM","MO","MDLZ","CL","KMB","GIS","KHC","SYK","BSX","ZTS",
+    "LIN","APD","SHW","ECL","NEM","FCX","DOW","NUE","PPG","ALB",
+    "NEE","DUK","SO","D","AEP","EXC","SRE","XEL","ED","PEG",
+    "PLD","AMT","EQIX","CCI","PSA","O","SPG","WELL","DLR","VICI",
+    "F","GM","RIVN","LCID","KMI","OKE","WM","RSG","EMR","CARR",
+]
+def get_us_fixed():
+    return list(US_BASE)
+
 def get_universe(quick=False):
     if quick:
         u = (["AAPL","MSFT","NVDA","AMZN","GOOGL","META","TSLA","AMD","CRM","NFLX",
@@ -84,7 +111,12 @@ def get_universe(quick=False):
                 "MGLU3.SA","ASAI3.SA"])
         return sorted(set(u))
     sp, ndx, b3 = get_sp500(), get_nasdaq100(), get_b3()
-    return sorted(set(sp + ndx + b3))
+    us = sp + ndx
+    # se a Wikipedia falhou (lista vazia), usa a lista fixa de EUA
+    if not us:
+        us = get_us_fixed()
+        print(f"  [info] usando lista fixa de {len(us)} acoes dos EUA (Wikipedia indisponivel)")
+    return sorted(set(us + b3))
 
 
 # ── Download + execucao ──────────────────────────────────────────────────────
