@@ -54,7 +54,7 @@ def scan(tickers, days_back):
         d = fetch_intraday_ok(tk)
         if len(d) < 60: continue
         try:
-            s = bt.compute_signals_windowed(d, didi_window=5, adx_window=3)
+            s = bt.compute_signals_windowed(d, didi_window=8, adx_window=3)
         except Exception:
             continue
         # olha os ultimos days_back candles
@@ -73,7 +73,7 @@ def scan(tickers, days_back):
                 # ha quantos candles o DIDI e o ADX dispararam?
                 pos = s.index.get_loc(idx)
                 didi_ago = adx_ago = None
-                for k in range(0,6):
+                for k in range(0,9):
                     if pos-k>=0 and bool(s["didi_cross"].iloc[pos-k]): didi_ago=k; break
                 for k in range(0,4):
                     if pos-k>=0 and bool(s["adx_event"].iloc[pos-k]): adx_ago=k; break
